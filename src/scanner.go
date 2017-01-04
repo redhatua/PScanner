@@ -2,39 +2,36 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
 
 type ScanPortResult struct {
-	Port  int
+	Port  string
 	State bool
 	Error error
-}
-
-type Result struct {
-	Results []ScanPortResult
 }
 
 func main() {
 	var host = "127.0.0.1"
 	var ports = "22,80,443,8080"
 
-	if "" != host && "" != ports {
-		portSplit := strings.Split(ports, ",")
-		for port := range portSplit {
-			//scan and add to slice
-		}
-		//make results
+	if "" == host || "" == ports {
+		log.Fatal("Die!")
+	}
+	results := []ScanPortResult{}
+	portSplit := strings.Split(ports, ",")
+	for _, port := range portSplit {
+		results = append(results, scanPort(host, port))
+	}
+	for _, state := range results {
+		log.Printf("Port %s %s", state.Port, map[bool]string{true: "open", false: "closed"}[state.State])
 	}
 }
 
-func appendResult() {
-	/* TODO: investigate how we can append it*/
-}
-
-func scanPort(h string, p int) *ScanPortResult {
-	scan, err := net.Dial("tcp", fmt.Sprintf("%s:%d", h, p))
+func scanPort(h, p string) ScanPortResult {
+	scan, err := net.Dial("tcp", fmt.Sprintf("%s:%s", h, p))
 	res := ScanPortResult{
 		Port:  p,
 		State: err == nil,
@@ -43,6 +40,6 @@ func scanPort(h string, p int) *ScanPortResult {
 	if scan != nil {
 		scan.Close()
 	}
-	return &res
+	return res
 
 }
