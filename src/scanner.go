@@ -17,9 +17,9 @@ type ScanPortResult struct {
 }
 
 const (
-	PortOpen     = "Open"
-	PortClosed   = "Closed"
-	PortFiltered = "Filtered"
+	portOpen     = "Open"
+	portClosed   = "Closed"
+	portFiltered = "Filtered"
 )
 
 func main() {
@@ -65,13 +65,13 @@ func splitRange(r string) ([]string, error) {
 
 func scanPort(h, p string) ScanPortResult {
 	scan, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", h, p), time.Second)
-	state := PortOpen
+	state := portOpen
 	switch {
 	case err == nil:
 	case strings.Contains(err.Error(), "timeout"):
-		state = PortFiltered
+		state = portFiltered
 	case strings.Contains(err.Error(), "refused"):
-		state = PortClosed
+		state = portClosed
 	}
 	res := ScanPortResult{
 		Port:  p,
@@ -87,7 +87,7 @@ func scanPort(h, p string) ScanPortResult {
 func showResult(results []ScanPortResult) {
 	log.Printf("Scanned %d ports", len(results))
 	for _, state := range results {
-		if state.State != PortClosed {
+		if state.State != portClosed {
 			log.Printf("Port %s %s", state.Port, state.State)
 		}
 	}
