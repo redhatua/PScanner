@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"os"
 )
 
 type ScanPortResult struct {
@@ -22,15 +23,19 @@ const (
 	portFiltered = "Filtered"
 )
 
+var startTime time.Time
+
 func main() {
 	var host = flag.String("h", "", "Target host")
 	var ports = flag.String("p", "", "Port(s) for scan")
 	flag.Parse()
 	if "" == *host || "" == *ports {
-		log.Fatal("Die!")
+		flag.Usage()
+		os.Exit(1)
 	}
 	results := []ScanPortResult{}
 	portSplit := parsePorts(*ports)
+	startTime = time.Now()
 	for _, port := range portSplit {
 		results = append(results, scanPort(*host, port))
 	}
@@ -85,7 +90,7 @@ func scanPort(h, p string) ScanPortResult {
 }
 
 func showResult(results []ScanPortResult) {
-	log.Printf("Scanned %d ports", len(results))
+	log.Printf("Scanned %d ports in %f seconds", len(results), time.Now().Sub(startTime).Seconds())
 	for _, state := range results {
 		if state.State != portClosed {
 			log.Printf("Port %s %s", state.Port, state.State)
