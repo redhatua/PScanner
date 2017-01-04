@@ -7,19 +7,25 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ScanPortResult struct {
 	Port  string
-	State bool
+	State string
 	Error error
 }
+
+const (
+	PortOpen     = "Open"
+	PortClosed   = "Closed"
+	PortFiltered = "Filtered"
+)
 
 func main() {
 	var host = flag.String("h", "", "Target host")
 	var ports = flag.String("p", "", "Port(s) for scan")
 	flag.Parse()
-
 	if "" == *host || "" == *ports {
 		log.Fatal("Die!")
 	}
@@ -28,9 +34,7 @@ func main() {
 	for _, port := range portSplit {
 		results = append(results, scanPort(*host, port))
 	}
-	for _, state := range results {
-		log.Printf("Port %s %s", state.Port, map[bool]string{true: "open", false: "closed"}[state.State])
-	}
+	showResult(results)
 }
 
 func parsePorts(ports string) []string {
@@ -45,9 +49,7 @@ func parsePorts(ports string) []string {
 			result = append(result, port)
 		}
 	}
-
 	return result
-
 }
 
 func splitRange(r string) ([]string, error) {
@@ -62,15 +64,31 @@ func splitRange(r string) ([]string, error) {
 }
 
 func scanPort(h, p string) ScanPortResult {
-	scan, err := net.Dial("tcp", fmt.Sprintf("%s:%s", h, p))
+	scan, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", h, p), time.Second)
+	state := PortOpen
+	switch {
+	case err == nil:
+	case strings.Contains(err.Error(), "timeout"):
+		state = PortFiltered
+	case strings.Contains(err.Error(), "refused"):
+		state = PortClosed
+	}
 	res := ScanPortResult{
 		Port:  p,
-		State: err == nil,
+		State: state,
 		Error: err,
 	}
 	if scan != nil {
 		scan.Close()
 	}
 	return res
+}
 
+func showResult(results []ScanPortResult) {
+	log.Printf("Scanned %d ports", len(results))
+	for _, state := range results {
+		if state.State != PortClosed {
+			log.Printf("Port %s %s", state.Port, state.State)
+		}
+	}
 }
